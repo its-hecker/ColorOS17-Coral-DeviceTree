@@ -43,6 +43,25 @@ class FstabTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             p.patch(FSTAB.replace("avb=vbmeta_system,", "", 1), {"system": "erofs"})
 
+    def test_gsi_embedded_product_and_system_ext(self):
+        out, report = p.patch(FSTAB, {}, {"product", "system_ext"})
+        self.assertIn("# ColorOS17 embedded: product /product ext4", out)
+        self.assertIn("# ColorOS17 embedded: system_ext /system_ext ext4", out)
+        self.assertNotIn("\nproduct /product ext4", out)
+        self.assertNotIn("\nsystem_ext /system_ext ext4", out)
+        self.assertIn(FSTAB.splitlines()[0], out)
+        self.assertIn(FSTAB.splitlines()[3], out)
+        self.assertIn(FSTAB.splitlines()[4], out)
+        self.assertEqual(report["product"]["action"], "omit_first_stage_mount")
+
+    def test_embed_and_fs_collision_disallowed(self):
+        with self.assertRaises(ValueError):
+            p.patch(FSTAB, {"product": "ext4"}, {"product"})
+
+    def test_empty_change_disallowed(self):
+        with self.assertRaises(ValueError):
+            p.patch(FSTAB)
+
     def test_boot_flags_preserved(self):
         out, _ = p.patch(FSTAB, {"system": "erofs"})
         self.assertIn("wait,slotselect,avb=vbmeta_system,logical,first_stage_mount", out)
