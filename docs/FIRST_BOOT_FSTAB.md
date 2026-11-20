@@ -1,14 +1,18 @@
-# Coral first-stage mount compatibility candidate
+# PLK110-specific coral first-stage mount candidate
 
-Pixel's existing `init/fstab.hardware` mounts `system`, `system_ext`, `vendor`, `product` as `ext4`, using A/B slot selection and AVB descriptors. A donor EROFS image cannot be mounted as `ext4`. This script **generates an explicit fstab candidate** only when the donor's real filesystem format has been independently established.
+The verified September 18, 2026 PLK110 ColorOS 17 Axis GSI contains **one raw ext4 system.img**. Inspection of that image (Actions run 44828896866) found populated top-level `/system`, `/product`, `/system_ext`, `/my_product`, `/my_stock`, and other ColorOS `my_*` directories inside **that same filesystem**.
+
+Coral's stock `init/fstab.hardware` instead tries to mount **separate** A/B logical `product` and `system_ext` images. Mounting these from PixelOS would shadow the ColorOS directories in the GSI. A candidate first-boot fstab must therefore omit the separate `product` and `system_ext` mount rows while keeping `system` and `vendor` intact.
+
+### Generate (does not flash or edit the original)
 
 ```bash
 python3 tools/patch_fstab.py \
-  --original /path/to/coral/init/fstab.hardware \
-  --system-fs erofs \
-  --output /tmp/coral-fstab.coloros17.candidate
+  --original /path/to/floral-device-tree/init/fstab.hardware \
+  --embed-product --embed-system-ext \
+  --output /tmp/coral-coloros17-fstab.candidate
 ```
 
-The generator removes ext4-only mount options on changed filesystems, but leaves the Pixel vendor mount, metadata, userdata encryption flags, AVB entries and partition names intact. Never set `--system-fs erofs` just because a zip is named ColorOS; inspect the unsparsed image. If only `system.img` is supplied, the GSI's nested `system_ext` and `product` content needs separate consideration; do not blindly overwrite Pixel logical partitions.
+The tool comments the selected rows instead of deleting evidence; preserves Pixel vendor, metadata, encrypted userdata, mount flags and existing AVB references. **Do not use `--system-fs erofs` for the verified PLK110 donor; it is ext4.**
 
-**Unresolved:** actual ColorOS donor filesystem, ramdisk fstab instance, ColorOS init mounting behavior, and matching AVB descriptors/verification are not yet validated. This is not a boot image or flashable patch.
+This is a **reviewable candidate**, not a bootable ramdisk patch. The installer and boot chain still need to verify the GSI's system-as-root mount context, `/product` and `/system_ext` overlay behavior, linker namespaces, SELinux contexts and exact vbmeta descriptors. Boot-time logging and reversible test packaging are necessary before a flash recommendation.
