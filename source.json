@@ -1,0 +1,8 @@
+{
+  "target": "coral",
+  "family": "floral",
+  "upstream": "https://github.com/its-hecker/heckeros-floral-devicetree",
+  "branch": "cnb_latest_stable",
+  "commit": "df8a1e64fc854158ddc4ed773a14f95e6455d310",
+  "scope": "device + framework HAL interfaces; external read-only base"
+}
